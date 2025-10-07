@@ -7,10 +7,6 @@ using TaskBoard.Api.Exceptions;
 using TaskBoard.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
-//builder.Services.AddDbContext<TasksContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("TasksContext") ?? throw new InvalidOperationException("Connection string 'TasksContext' not found.")));
-
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
