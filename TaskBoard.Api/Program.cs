@@ -18,9 +18,20 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddScoped<IUserService, UserService>();
 
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 29));
-builder.Services.AddDbContext<TasksContext>(options =>
-options.UseMySql(builder.Configuration.GetConnectionString("TaskDatabase") ?? throw new InvalidOperationException("Connection string 'TasksContext' not found."), serverVersion) 
-);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDbContext<TasksContext>(options =>
+        options.UseMySql(builder.Configuration.GetConnectionString("TaskDatabase") ?? throw new InvalidOperationException("Connection string 'TaskDatabase' not found."), serverVersion)
+    );
+}
+else
+{
+    builder.Services.AddDbContext<TasksContext>(options =>
+        options.UseMySql(Environment.GetEnvironmentVariable("TaskDatabase") ?? throw new InvalidOperationException("Env veriable  'TaskDatabase' not found."), serverVersion) 
+    );
+}
+
 
 builder.Services.AddControllers();
 builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOptions options)
@@ -28,7 +39,6 @@ builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOp
     options.SerializerSettings.ReferenceLoopHandling = (ReferenceLoopHandling)1;
 });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
