@@ -1,0 +1,97 @@
+# Build results
+bin/
+obj/
+out/
+publish/
+TestResults/
+
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.iml
+
+# Dotnet tools
+*.nupkg
+*.snk
+project.lock.json
+artifacts/
+
+# Logs
+*.log
+*.tlog
+logs/
+LogFiles/
+
+# Environment files
+.env
+.env.*
+appsettings.Development.json
+appsettings.Local.json
+
+# Database and migrations
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.mdf
+*.ldf
+Migrations/
+
+# Node / Vue frontend (if using Vue in a subfolder like ClientApp/)
+node_modules/
+dist/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend build output (if separate Vue project)
+ClientApp/node_modules/
+ClientApp/dist/
+
+# Coverage reports
+coverage/
+*.coverage
+*.coveragexml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Tooling / Build caches
+.nuget/packages/
+*.dll
+*.exe
+*.pdb
+*.cachefile
+
+# Secret keys
+secrets.json
+
+# Secrets
+appsettings.json
+appsettings.Development.json
+.env
+
+Taskboard.WebApp/

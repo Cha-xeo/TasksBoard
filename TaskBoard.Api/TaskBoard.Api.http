@@ -1,0 +1,6 @@
+@TaskBoard.Api_HostAddress = https://localhost:7085
+
+GET {{TaskBoard.Api_HostAddress}}/api/Users/1
+Accept: application/json
+
+###

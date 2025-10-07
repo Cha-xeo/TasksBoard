@@ -1,0 +1,112 @@
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using TaskBoard.Api.Data;
+using TaskBoard.Api.Exceptions;
+using TaskBoard.Api.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+//builder.Services.AddDbContext<TasksContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("TasksContext") ?? throw new InvalidOperationException("Connection string 'TasksContext' not found.")));
+
+// Add services to the container.
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// Add services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddScoped<IUserService, UserService>();
+
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 29));
+builder.Services.AddDbContext<TasksContext>(options =>
+options.UseMySql(builder.Configuration.GetConnectionString("TaskDatabase") ?? throw new InvalidOperationException("Connection string 'TasksContext' not found."), serverVersion) 
+);
+
+builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOptions options)
+{
+    options.SerializerSettings.ReferenceLoopHandling = (ReferenceLoopHandling)1;
+});
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+// Global error handler
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/json";
+
+        // Get exception details
+        var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+        var exception = exceptionHandlerFeature?.Error;
+
+        // You can customize the status code based on exception type
+        context.Response.StatusCode = exception switch
+        {
+            ApiException apiEx => apiEx.StatusCode,                 // Custom client errors
+            DbUpdateException => 400,                               // database errors
+            KeyNotFoundException => 404,                            // not found
+            _ => 500                                                // general errors
+        };
+
+        // Log the exception (console, file, or use ILogger)
+        Console.WriteLine($"Exception: {exception?.Message}");
+
+        // Return consistent JSON
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = exception?.Message,
+            stackTrace = app.Environment.IsDevelopment() ? exception?.StackTrace : null
+        });
+    });
+});
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+else
+{
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    var context = services.GetRequiredService<TasksContext>();
+    try
+    {
+        if (context.Database.CanConnect())
+        {
+            Console.WriteLine("Database connection successful!");
+            context.Database.EnsureCreated();
+            //DbInitializer.Initialize(context);
+        }
+        else
+        {
+            Console.WriteLine("Cannot connect to database.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Connection failed: {ex.Message}");
+    }
+}
+
+
+app.Run();
