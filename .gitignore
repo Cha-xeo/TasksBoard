@@ -90,8 +90,5 @@ _ReSharper*/
 secrets.json
 
 # Secrets
-appsettings.json
-appsettings.Development.json
+appsettings.*.json
 .env
-
-Taskboard.WebApp/

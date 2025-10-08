@@ -1,0 +1,17 @@
+﻿@page "/"
+@inject HttpClient Http
+
+@code {
+	private List<ProjectDto> projects = [];
+
+	protected override async Task OnInitializedAsync()
+	{
+		projects = await Http.GetFromJsonAsync<List<ProjectDto>>("api/projects");
+	}
+}
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
