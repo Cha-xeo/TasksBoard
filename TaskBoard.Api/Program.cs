@@ -15,10 +15,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+// Custom services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITasksService, TasksService>();
 
+// Database connection
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 29));
-
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddDbContext<TasksContext>(options =>
@@ -32,8 +35,9 @@ else
     );
 }
 
-
+// Controllers
 builder.Services.AddControllers();
+// Prevent self referencing loop
 builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOptions options)
 {
     options.SerializerSettings.ReferenceLoopHandling = (ReferenceLoopHandling)1;
@@ -90,6 +94,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
+// Database handcheck
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -101,7 +106,6 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine("Database connection successful!");
             context.Database.EnsureCreated();
-            //DbInitializer.Initialize(context);
         }
         else
         {
