@@ -8,7 +8,5 @@ namespace TaskBoard.Api.Dtos
         public string? Name { get; set; }
         public string? Description { get; set; }
         public List<int>? UserIDS { get; set; }
-        public List<Users>? User { get; set; }
-
     }
 }

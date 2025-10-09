@@ -68,7 +68,6 @@ namespace TaskBoard.Api.Services
                 UserIDS = task.UserIDS,
                 Name = task.Name,
                 Description = task.Description,
-                User = task.User
             };
         }
     }

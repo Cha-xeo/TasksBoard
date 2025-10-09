@@ -21,7 +21,8 @@ namespace TaskBoard.Api.Services
                 ID = user.ID,
                 Age = user.Age,
                 UserName = user.UserName,
-                BirthDate = user.BirthDate
+                BirthDate = user.BirthDate,
+                TasksIDS = user.TasksIDS
             };
         }
         public async Task<UserDto> CreateUserAsync(Users newUser)
