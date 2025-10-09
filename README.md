@@ -26,7 +26,7 @@ Post
   "birthDate": "2025-10-09T04:14:21.049Z",
   "tasksIDS": [
     1
-  ],
+  ]
 }
 
 /api/Task
@@ -66,7 +66,7 @@ Put ids in route and body must match
   "birthDate": "2025-10-09T04:14:21.049Z",
   "tasksIDS": [
     1
-  ],
+  ]
 }
 
 /api/Task/{id}
@@ -77,7 +77,7 @@ Put ids in route and body must match
   "birthDate": "2025-10-09T04:14:21.049Z",
   "tasksIDS": [
     1
-  ],
+  ]
 }
 ```
 
