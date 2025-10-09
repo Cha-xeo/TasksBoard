@@ -28,9 +28,9 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int ID)
+        public async Task<IActionResult> GetById(int id)
         {
-            TaskDto? task = await _taskService.GetById(ID);
+            TaskDto? task = await _taskService.GetById(id);
             if (task is null) return NotFound();
             return Ok(task);
         }
@@ -48,17 +48,17 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int ID, Tasks updatedTask)
+        public async Task<IActionResult> UpdateTask(int id, Tasks updatedTask)
         {
-            TaskDto? task = await _taskService.Update(ID, updatedTask);
+            TaskDto? task = await _taskService.Update(id, updatedTask);
             if (task is null) return NotFound();
             return Ok(task);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTask(int ID)
+        public async Task<IActionResult> DeleteTask(int id)
         {
-            bool state = await _taskService.Delete(ID);
+            bool state = await _taskService.Delete(id);
             if (state == false) NotFound(state);
             return Ok(state);
         }
