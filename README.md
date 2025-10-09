@@ -71,11 +71,9 @@ Put ids in route and body must match
 
 /api/Task/{id}
 {
-  "id": 1,
-  "age": 1,
-  "userName": "string",
-  "birthDate": "2025-10-09T04:14:21.049Z",
-  "tasksIDS": [
+  "name": "string",
+  "description": "string",
+  "userIDS": [
     1
   ]
 }
