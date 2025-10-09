@@ -46,6 +46,7 @@ namespace TaskBoard.Api.Services
             }
 
             Users? user = await query.FirstOrDefaultAsync(u => u.ID == ID);
+
             return user is null ? null : MapToDto(user, expands);
         }
 
@@ -73,14 +74,19 @@ namespace TaskBoard.Api.Services
 
         public async Task<UserDto?> Update(int ID, Users user, List<string>? expands = null)
         {
-            // TODO Change to query.FirstOrDefaultAsync(t => t.ID == ID) when changing deletion method to soft delete
-            var existingUser = await _tasksContext.Users.FindAsync(ID);
+            var existingUser = await _tasksContext.Users
+                .Include(u => u.Tasks)
+                .FirstOrDefaultAsync(u => u.ID == ID);
             if (existingUser is null) return null;
-            if (user.ID != existingUser.ID) 
+            if (user.ID != existingUser.ID)
                 throw new ApiException("Mismatched updateUser ID", 400);
 
             await ValidateTasksAsync(user);
+
+            // handle scalar values
             _tasksContext.Users.Entry(existingUser).CurrentValues.SetValues(user);
+            
+            Helper.ColletionHelpers.SyncCollection(existingUser.Tasks, user.Tasks);
 
             await _tasksContext.SaveChangesAsync();
             return existingUser is null ? null : MapToDto(existingUser, expands);
@@ -97,13 +103,15 @@ namespace TaskBoard.Api.Services
 
         public async Task ValidateTasksAsync(Users newUser)
         {
-            if (newUser.TasksIDS.IsNullOrEmpty()) return;
+            if (newUser.Tasks is null || !newUser.Tasks.Any()) return;
+            var taskIds = newUser.Tasks.Select(t => t.ID).ToList();
 
             var existingTasks = await _tasksContext.Tasks
-                .Where(t => newUser.TasksIDS.Contains(t.ID))
+                .Where(t => taskIds.Contains(t.ID))
                 .ToListAsync();
 
-            if (existingTasks.Count != newUser.TasksIDS?.Count)
+
+            if (existingTasks.Count != taskIds.Count)
             {
                 throw new ArgumentException("Some assigned tasks do not exist.");
             }
@@ -120,14 +128,14 @@ namespace TaskBoard.Api.Services
                 Age = user.Age,
                 UserName = user.UserName,
                 BirthDate = user.BirthDate,
-                TasksIDS = user.TasksIDS
+                TasksIDS = user.Tasks?.Select(t => t.ID).ToList() ?? new()
             };
 
             // Optionals
-
             if (expands is null) return dto;
-
-            dto.Tasks = user.Tasks?
+            if (Helper.ExpandHelper.ShouldExpand(expands, "tasks"))
+            {
+                dto.Tasks = user.Tasks?
                 .Select(t => new TaskSummaryDto
                 {
                     ID = t.ID,
@@ -135,6 +143,7 @@ namespace TaskBoard.Api.Services
                     Description = t.Description,
                 })
                 .ToList() ?? new List<TaskSummaryDto>();
+            }
             return dto;
         }
     }

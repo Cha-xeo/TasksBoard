@@ -38,10 +38,10 @@ else
 // Controllers
 builder.Services.AddControllers();
 // Prevent self referencing loop
-builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOptions options)
-{
-    options.SerializerSettings.ReferenceLoopHandling = (ReferenceLoopHandling)1;
-});
+//builder.Services.AddControllers().AddNewtonsoftJson(delegate(MvcNewtonsoftJsonOptions options)
+//{
+//    options.SerializerSettings.ReferenceLoopHandling = (ReferenceLoopHandling)1;
+//});
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
