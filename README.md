@@ -23,18 +23,22 @@ Post
 {
   "age": 0,
   "userName": "string",
-  "birthDate": "2025-10-09T04:14:21.049Z",
-  "tasksIDS": [
-    1
-  ],
+  "birthDate": "2025-10-09T07:55:27.140Z",
+  "tasks": [
+    {
+      "id": 1
+    }
+  ]
 }
 
 /api/Task
 {
-  "name": "string",
+  "name": "test",
   "description": "string",
-  "userIDS": [
-    1
+  "user": [
+    {
+      "id": 1
+    }
   ]
 }
 ```
@@ -60,24 +64,27 @@ Put ids in route and body must match
 ```
 /api/User/{id}
 {
-  "id": 1,
-  "age": 1,
+  "id":1,
+  "age": 0,
   "userName": "string",
-  "birthDate": "2025-10-09T04:14:21.049Z",
-  "tasksIDS": [
-    1
-  ],
+  "birthDate": "2025-10-09T07:55:27.140Z",
+  "tasks": [
+    {
+      "id": 1
+    }
+  ]
 }
 
 /api/Task/{id}
 {
   "id": 1,
-  "age": 1,
-  "userName": "string",
-  "birthDate": "2025-10-09T04:14:21.049Z",
-  "tasksIDS": [
-    1
-  ],
+  "name": "test",
+  "description": "string",
+  "user": [
+    {
+      "id": 1
+    }
+  ]
 }
 ```
 

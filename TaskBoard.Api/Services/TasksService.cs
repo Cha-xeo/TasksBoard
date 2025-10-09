@@ -46,10 +46,6 @@ namespace TaskBoard.Api.Services
                         query = query.Include(expression);
                     }
                 }
-                //if (expands.Contains("users", StringComparer.OrdinalIgnoreCase)) 
-                //{
-                //    query = query.Include(t => t.User);
-                //}
             }
 
 
@@ -78,20 +74,24 @@ namespace TaskBoard.Api.Services
                 throw;
             }
         }
-        public async Task<TaskDto?> Update(int ID, Tasks UpdatedTask, List<string>? expands = null)
+        public async Task<TaskDto?> Update(int ID, Tasks task, List<string>? expands = null)
         {
-            // TODO Change to query.FirstOrDefaultAsync(t => t.ID == ID) when changing deletion method to soft delete
-            Tasks? toUpdate = await _tasksContext.Tasks.FindAsync(ID);
-            if (toUpdate is null) return null;
-
-            if (UpdatedTask.ID != toUpdate.ID)
+            Tasks? existingTask = await _tasksContext.Tasks
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.ID == ID);
+            if (existingTask is null) return null;
+            if (task.ID != existingTask.ID)
                 throw new ApiException("Missmatched IDs", 400);
 
-            await ValidateUsersAsync(UpdatedTask);
+            await ValidateUsersAsync(task);
 
-            _tasksContext.Tasks.Entry(toUpdate).CurrentValues.SetValues(UpdatedTask);
+            // handle scalar values
+            _tasksContext.Tasks.Entry(existingTask).CurrentValues.SetValues(task);
+
+            Helper.ColletionHelpers.SyncCollection(existingTask.User, task.User);
+
             await _tasksContext.SaveChangesAsync();
-            return toUpdate is null ? null: MapToDto(toUpdate, expands);
+            return existingTask is null ? null: MapToDto(existingTask, expands);
         }
         public async Task<bool> Delete(int ID)
         {
@@ -104,13 +104,14 @@ namespace TaskBoard.Api.Services
 
         public async Task ValidateUsersAsync(Models.Tasks newTask)
         {
-            if (newTask.UserIDS.IsNullOrEmpty()) return;
+            if (newTask.User is null || !newTask.User.Any() ) return;
+            var userIds = newTask.User.Select(u => u.ID).ToList();
 
             var existingUsers = await _tasksContext.Users
-                    .Where(u => newTask.UserIDS.Contains(u.ID))
+                    .Where(u => userIds.Contains(u.ID))
                     .ToListAsync();
 
-            if (existingUsers.Count != newTask.UserIDS?.Count)
+            if (existingUsers.Count != userIds.Count)
             {
                 throw new ArgumentException("Some assigned users do not exist.");
             }
@@ -124,7 +125,7 @@ namespace TaskBoard.Api.Services
             TaskDto dto = new TaskDto
             {
                 ID = task.ID,
-                UserIDS = task.UserIDS,
+                UserIDS = task.User?.Select(u => u.ID).ToList() ?? new(),
                 Name = task.Name,
                 Description = task.Description,
             };
@@ -133,7 +134,7 @@ namespace TaskBoard.Api.Services
             
             if (expands is null) return dto;
 
-            if (ExpandHelper.ShouldExpand(expands, "users"))
+            if (Helper.ExpandHelper.ShouldExpand(expands, "users"))
             {
                 dto.Users = task.User?
                 .Select(u => new UserSummaryDto
