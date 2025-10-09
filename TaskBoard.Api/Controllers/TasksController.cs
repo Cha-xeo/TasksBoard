@@ -6,6 +6,7 @@ using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services;
 
+// TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -28,9 +29,13 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(int id, [FromQuery] string? expand = "")
         {
-            TaskDto? task = await _taskService.GetById(id);
+            var expands = expand?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList() ?? new List<string>();
+
+            TaskDto? task = await _taskService.GetById(id, expands);
             if (task is null) return NotFound();
             return Ok(task);
         }

@@ -10,6 +10,7 @@ using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services;
 
+// TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -24,18 +25,22 @@ namespace TaskBoard.Api.Controllers
             _userService = userService;
         }
 
-        [HttpGet()]
+        [HttpGet]
         public async Task<IActionResult> GetUsers()
         {
-            var user = await _userService.getAllUsersAsync();
+            var user = await _userService.GetAllUsers();
             if (user is null) return NotFound();
             return Ok(user);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserByID(int id)
+        public async Task<IActionResult> GetUserByID(int id, [FromQuery] string? expand = "")
         {
-            var user = await _userService.getUserByIDAsync(id);
+            var expands = expand?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList() ?? new List<string>();
+
+            var user = await _userService.GetById(id, expands);
             if (user is null) return NotFound();
             return Ok(user);
         }
@@ -47,7 +52,7 @@ namespace TaskBoard.Api.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var created = await _userService.CreateUserAsync(user);
+            var created = await _userService.Create(user);
 
             return CreatedAtAction(nameof(GetUserByID), new {id = created.ID}, created);
         }
@@ -55,7 +60,7 @@ namespace TaskBoard.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUserByID(int id, Users user)
         {
-            UserDto? updatedUser = await _userService.UpdateUserAsync(id, user);
+            UserDto? updatedUser = await _userService.Update(id, user);
             if (updatedUser is null) return NotFound();
             return Ok(updatedUser);
         }
@@ -63,7 +68,7 @@ namespace TaskBoard.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUserByID(int id) 
         {
-            bool state = await _userService.DeleteUserAsync(id);
+            bool state = await _userService.Delete(id);
             if (state == false) return NotFound(state);
             return Ok(state);
         }
