@@ -1,24 +1,72 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
+using System.Security.Claims;
+using System.Text;
+using TaskBoard.Api.Configuration;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Exceptions;
+using TaskBoard.Api.Handler;
 using TaskBoard.Api.Services;
+using TaskBoard.Api.Services.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
-// Add services
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddOpenApi();
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
 // Custom services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITasksService, TasksService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+// Add services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddSwaggerGen(options =>
+{
+    var jwtSecurityScheme = new OpenApiSecurityScheme 
+    {
+        BearerFormat = "JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+        Description = "Enter JWT Access Token",
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+    options.AddSecurityDefinition("Bearer", jwtSecurityScheme);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { jwtSecurityScheme, Array.Empty<string>() }
+    });
+});
+
+// Enforce HTTPS redirection
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
+    options.HttpsPort = 443;
+});
+
+// Auth
+builder.Services.AddAuthorization();
+
+// Bind configuration section into JwtOptions
+builder.Services.Configure<JwtOptions>(
+    builder.Configuration.GetSection("Jwt"));
+// Read JWT options for middleware setup
+JwtOptions jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>();
 
 // Database connection
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 29));
@@ -30,10 +78,40 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
+    var keyFromEnv = Environment.GetEnvironmentVariable("Jwt__Key");
+    if (string.IsNullOrEmpty(keyFromEnv))
+        throw new InvalidOperationException("JWT Key environment variable not set for production.");
+    jwtOptions.Key = keyFromEnv;
+
     builder.Services.AddDbContext<TasksContext>(options =>
         options.UseMySql(Environment.GetEnvironmentVariable("TaskDatabase") ?? throw new InvalidOperationException("Env veriable  'TaskDatabase' not found."), serverVersion) 
     );
 }
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+
+            ValidIssuers = jwtOptions.Issuer,
+            ValidAudiences = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtOptions.Key)
+            )
+        };
+    })
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
 // Controllers
 builder.Services.AddControllers();
@@ -77,7 +155,7 @@ app.UseExceptionHandler(errorApp =>
         });
     });
 });
-
+// Middlewares
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -91,6 +169,7 @@ else
     app.UseSwaggerUI();
 }
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
@@ -118,5 +197,10 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.MapGet("/", () => "Hello, World!");
+app.MapGet("/secret", (ClaimsPrincipal user) => $"Hello {user.Identity?.Name}. My secret")
+    .RequireAuthorization();
+app.MapGet("/secret2", () => "This is a different secret!")
+    .RequireAuthorization(p => p.RequireClaim("scope", "myapi:secrets"));
 
 app.Run();

@@ -1,20 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
-using TaskBoard.Api.Services;
+using TaskBoard.Api.Services.Interface;
 
 // TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    [ApiController, Route("api/[controller]"), Authorize]
     public class UsersController : ControllerBase
     {
 
@@ -68,9 +61,27 @@ namespace TaskBoard.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUserByID(int id) 
         {
-            bool state = await _userService.Delete(id);
+            //bool state = await _userService.Delete(id);
+            bool state = await _userService.SoftDelete(id);
             if (state == false) return NotFound(state);
             return Ok(state);
+        }
+
+        [HttpPatch("{id}/soft-delete")]
+        public async Task<IActionResult> SoftDeleteUserByID(int id) 
+        {
+            //bool state = await _userService.Delete(id);
+            bool state = await _userService.SoftDelete(id);
+            if (state == false) return NotFound(state);
+            return Ok(state);
+        }
+
+        [HttpPatch("{id}/restore")]
+        public async Task<IActionResult> RestoreUserByID(int id) 
+        {
+            UserDto? updatedUser = await _userService.RestoreSoftDeleted(id);
+            if (updatedUser is null) return NotFound();
+            return Ok(updatedUser);
         }
     }
 }

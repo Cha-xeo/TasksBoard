@@ -1,16 +1,16 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
-using TaskBoard.Api.Services;
+using TaskBoard.Api.Services.Interface;
 
 // TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    [Route("api/[controller]"), ApiController, Authorize]
     public class TasksController : ControllerBase
     {
         private readonly ITasksService _taskService;

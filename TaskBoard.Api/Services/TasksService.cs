@@ -4,7 +4,9 @@ using System.Linq.Expressions;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Exceptions;
+using TaskBoard.Api.Mappers;
 using TaskBoard.Api.Models;
+using TaskBoard.Api.Services.Interface;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace TaskBoard.Api.Services
@@ -29,7 +31,7 @@ namespace TaskBoard.Api.Services
         public async Task<IEnumerable<TaskDto>?> GetAllTasks(List<string>? expands = null)
         {
             List<Tasks>? tasks = await _tasksContext.Tasks.ToListAsync();
-            return tasks.Count == 0 ? null : tasks.Select(t => MapToDto(t, expands)).ToList();
+            return tasks.Count == 0 ? null : tasks.Select(t => TaskMapper.ToDto(t, expands)).ToList();
         }
 
         // Return a task as TaskDto corresponding to the ID or null if not found
@@ -50,7 +52,7 @@ namespace TaskBoard.Api.Services
 
 
             Tasks? task = await query.FirstOrDefaultAsync(t => t.ID == ID);
-            return task is null ? null : MapToDto(task, expands);
+            return task is null ? null : TaskMapper.ToDto(task, expands);
         }
         
         public async Task<TaskDto> Create(Tasks newTask, List<string>? expands = null)
@@ -61,7 +63,7 @@ namespace TaskBoard.Api.Services
 
                 _tasksContext.Tasks.Add(newTask);
                 await _tasksContext.SaveChangesAsync();
-                return MapToDto(newTask, expands);
+                return TaskMapper.ToDto(newTask, expands);
             }
             catch (DbUpdateException dbEx)
             {
@@ -91,7 +93,7 @@ namespace TaskBoard.Api.Services
             Helper.ColletionHelpers.SyncCollection(existingTask.User, task.User);
 
             await _tasksContext.SaveChangesAsync();
-            return existingTask is null ? null: MapToDto(existingTask, expands);
+            return existingTask is null ? null: TaskMapper.ToDto(existingTask, expands);
         }
         public async Task<bool> Delete(int ID)
         {
@@ -117,36 +119,6 @@ namespace TaskBoard.Api.Services
             }
 
             newTask.User = existingUsers;
-        }
-
-        public TaskDto MapToDto(Tasks task, List<string>? expands = null)
-        {
-            // Default
-            TaskDto dto = new TaskDto
-            {
-                ID = task.ID,
-                UserIDS = task.User?.Select(u => u.ID).ToList() ?? new(),
-                Name = task.Name,
-                Description = task.Description,
-            };
-
-            // Optionals
-            
-            if (expands is null) return dto;
-
-            if (Helper.ExpandHelper.ShouldExpand(expands, "users"))
-            {
-                dto.Users = task.User?
-                .Select(u => new UserSummaryDto
-                {
-                    ID = u.ID,
-                    UserName = u.UserName,
-                    BirthDate = u.BirthDate
-                })
-                .ToList() ?? new List<UserSummaryDto>();    
-            }
-
-            return dto;
         }
     }
 }

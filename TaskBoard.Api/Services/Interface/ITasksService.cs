@@ -2,7 +2,7 @@
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using TaskBoard.Api.Dtos;
 
-namespace TaskBoard.Api.Services
+namespace TaskBoard.Api.Services.Interface
 {
     public interface ITasksService
     {
@@ -13,6 +13,5 @@ namespace TaskBoard.Api.Services
         Task<bool> Delete(int ID);
 
         Task ValidateUsersAsync(Models.Tasks newTask);
-        TaskDto MapToDto(Models.Tasks task, List<string>? expands = null);
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace TaskBoard.Api.Models
+﻿using TaskBoard.Api.Models.Asbstracts;
+
+namespace TaskBoard.Api.Models
 {
-    public class Tasks
+    public class Tasks : BaseEntity
     {
         public int ID { get; set; }
         public string? Name { get; set; }

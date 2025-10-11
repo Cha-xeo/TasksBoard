@@ -4,7 +4,9 @@ using System.Linq.Expressions;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Exceptions;
+using TaskBoard.Api.Mappers;
 using TaskBoard.Api.Models;
+using TaskBoard.Api.Services.Interface;
 
 namespace TaskBoard.Api.Services
 {
@@ -27,12 +29,12 @@ namespace TaskBoard.Api.Services
         public async Task<List<UserDto>?> GetAllUsers(List<string>? expands = null)
         {
             List<Users> users = await _tasksContext.Users.ToListAsync();
-            return users.Count == 0 ? null : users.Select(u => MapToDto(u, expands)).ToList();
+            return users.Count == 0 ? null : users.Select(u => UserMapper.ToDto(u, expands)).ToList();
         }
 
         public async Task<UserDto?> GetById(int ID, List<string>? expands = null)
         {
-            IQueryable<Users> query = _tasksContext.Users.AsQueryable();
+            IQueryable<Users> query = _tasksContext.Users.IgnoreQueryFilters().AsQueryable();
 
             if (expands is not null)
             {
@@ -47,7 +49,7 @@ namespace TaskBoard.Api.Services
 
             Users? user = await query.FirstOrDefaultAsync(u => u.ID == ID);
 
-            return user is null ? null : MapToDto(user, expands);
+            return user is null ? null : UserMapper.ToDto(user, expands);
         }
 
         public async Task<UserDto> Create(Users newUser, List<string>? expands = null)
@@ -58,7 +60,7 @@ namespace TaskBoard.Api.Services
 
                 _tasksContext.Add(newUser);
                 await _tasksContext.SaveChangesAsync();
-                return MapToDto(newUser, expands);
+                return UserMapper.ToDto(newUser, expands);
             }
             catch (DbUpdateException dbEx)
             {
@@ -84,12 +86,44 @@ namespace TaskBoard.Api.Services
             await ValidateTasksAsync(user);
 
             // handle scalar values
+            user.UpdatedAt = DateTime.UtcNow;
             _tasksContext.Users.Entry(existingUser).CurrentValues.SetValues(user);
             
             Helper.ColletionHelpers.SyncCollection(existingUser.Tasks, user.Tasks);
 
             await _tasksContext.SaveChangesAsync();
-            return existingUser is null ? null : MapToDto(existingUser, expands);
+            return existingUser is null ? null : UserMapper.ToDto(existingUser, expands);
+        }
+        public async Task<UserDto?> RestoreSoftDeleted(int ID)
+        {
+            Users? user = await _tasksContext.Users.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.ID == ID);
+            if (user is null) return null;
+
+            user.DeletedAt = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            user.IsActive = true;
+            await _tasksContext.SaveChangesAsync();
+            return UserMapper.ToDto(user);
+        }
+
+        public async Task<bool> SoftDelete(int ID)
+        {
+            Users? user = await _tasksContext.Users.FirstOrDefaultAsync(u => u.ID == ID);
+            if (user is null) return false;
+            user.UpdatedAt = DateTime.UtcNow;
+            user.DeletedAt = DateTime.UtcNow;
+
+            if (user.Tasks is not null)
+            {
+                foreach (var task in user.Tasks)
+                {
+                    task.UpdatedAt = DateTime.UtcNow;
+                    task.DeletedAt = DateTime.UtcNow;
+                }
+            }
+            await _tasksContext.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> Delete(int ID)
@@ -117,34 +151,6 @@ namespace TaskBoard.Api.Services
             }
 
             newUser.Tasks = existingTasks;
-        }
-
-        public UserDto MapToDto(Users user, List<string>? expands = null)
-        {
-            // Default
-            UserDto dto = new UserDto
-            {
-                ID = user.ID,
-                Age = user.Age,
-                UserName = user.UserName,
-                BirthDate = user.BirthDate,
-                TasksIDS = user.Tasks?.Select(t => t.ID).ToList() ?? new()
-            };
-
-            // Optionals
-            if (expands is null) return dto;
-            if (Helper.ExpandHelper.ShouldExpand(expands, "tasks"))
-            {
-                dto.Tasks = user.Tasks?
-                .Select(t => new TaskSummaryDto
-                {
-                    ID = t.ID,
-                    Name = t.Name,
-                    Description = t.Description,
-                })
-                .ToList() ?? new List<TaskSummaryDto>();
-            }
-            return dto;
         }
     }
 }

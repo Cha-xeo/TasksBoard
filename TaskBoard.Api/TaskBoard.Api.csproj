@@ -4,18 +4,20 @@
     <TargetFramework>net9.0</TargetFramework>
 	  <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>3bd350dc-dd9e-4a44-93af-5f83ef6b9972</UserSecretsId>
   </PropertyGroup>
 
 	<ItemGroup>
 
 		<None Include="appsettings.Development.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
 
-		<None Include="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+		<None Include="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Always" />
 
 		<Content Remove="appsettings.*.json;appsettings.json" />
 
 	</ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
