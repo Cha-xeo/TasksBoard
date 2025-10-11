@@ -11,6 +11,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace TaskBoard.Api.Services
 {
+    // TODO fix task requiring full fledged user on update
     public class TasksService : ITasksService
     {
         private readonly TasksContext _tasksContext;

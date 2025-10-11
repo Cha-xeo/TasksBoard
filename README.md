@@ -11,14 +11,52 @@ TaskDatabase will be used in Develpoment environment.
   "AllowedHosts": "*",
   "ConnectionStrings": {
     "TaskDatabase": "server=localhost;user=;password=;database=",
+  },
+  "Jwt": {
+    "Key": "MySuperStrongSecretKey1234567890",
+    "Issuer": [
+      "https://localhost:7085"
+    ],
+    "Audience": [
+      "https://localhost:7085"
+    ],
+    "TokenValidityMins": 30
+  },
+  "Authentication": {
+    "Schemes": {}
   }
 }
 ```
-Please note that appsettings.Development.json shoould never be pushed
 
-Sample for adding  Users and Tasks tasksIDS and userIDS must exist before being added to the other
+Sample for adding Interacting with the api
+use the Jwt token in header
+'Authorization: Bearer {Token}'
+Use apiKey in Header
+X-API-KEY
+
 Post
 ```
+Return a Jwt access token needed to accesss other route
+/api/Auth/login
+{
+  "userName": "string",
+  "password": "string"
+}
+
+Register a user
+/api/Auth/register
+{
+  "email": "nullable",
+  "displayName": "nullable",
+  "firstName": "nullable",
+  "lastName": "nullable",
+  "userName": "string",
+  "password": "string"
+}
+
+Return an ApiKey to use inthe other route of sample for now
+/api/Sample
+
 /api/User
 {
   "age": 0,
