@@ -28,106 +28,142 @@ TaskDatabase will be used in Develpoment environment.
 }
 ```
 
-Sample for adding Interacting with the api
-use the Jwt token in header
-'Authorization: Bearer {Token}'
-Use apiKey in Header
-X-API-KEY
+Routes
 
-Post
+Auth
 ```
+
 Return a Jwt access token needed to accesss other route
-/api/Auth/login
-{
-  "userName": "string",
-  "password": "string"
-}
-
-Register a user
-/api/Auth/register
-{
-  "email": "nullable",
-  "displayName": "nullable",
-  "firstName": "nullable",
-  "lastName": "nullable",
-  "userName": "string",
-  "password": "string"
-}
-
-Return an ApiKey to use inthe other route of sample for now
-/api/Sample
-
-/api/User
-{
-  "age": 0,
-  "userName": "string",
-  "birthDate": "2025-10-09T07:55:27.140Z",
-  "tasks": [
-    {
-      "id": 1
-    }
-  ]
-}
-
-/api/Task
-{
-  "name": "test",
-  "description": "string",
-  "user": [
-    {
-      "id": 1
-    }
-  ]
-}
+POST
+  /api/Auth/login
+  {
+    "userName": "string",
+    "password": "string"
+  }
+  
+  Register a user
+  /api/Auth/register
+  {
+    "email": "nullable",
+    "displayName": "nullable",
+    "firstName": "nullable",
+    "lastName": "nullable",
+    "userName": "string",
+    "password": "string"
+  }  
 ```
 
-Get
+Sample
 ```
-/api/User/
+GET
+  Test whether your jwt token is working
+  /api/Sample/jwt
+  -H 'Authorization: Bearer {Token}'
 
+  Test whether your ApiKey is working
+  /api/Sample/apikey
+  -H 'X-API-KEY: {Key}'
 
-/api/User/{id}
-?expand=tasks can be added to show Tasks
+  Test whether your ApiKey or your jwt token is working
+  /api/Sample/either
+  -H 'Authorization: Bearer {Token}'
+  -H 'X-API-KEY: {Key}'
 
-
-/api/Task/
-
-
-/api/Task/{id}
-?expand=users can be added to show Users
-
-```
-
-Put ids in route and body must match
-```
-/api/User/{id}
-{
-  "id":1,
-  "age": 0,
-  "userName": "string",
-  "birthDate": "2025-10-09T07:55:27.140Z",
-  "tasks": [
-    {
-      "id": 1
-    }
-  ]
-}
-
-/api/Task/{id}
-{
-  "id": 1,
-  "name": "test",
-  "description": "string",
-  "user": [
-    {
-      "id": 1
-    }
-  ]
-}
+POST
+  Return a functionning ApiKey if jwt token is valid
+  /api/sample
+  -H 'Authorization: Bearer {Token}'
 ```
 
-Delete
+TaskBoard.Api
 ```
-/api/User/{id}
-/api/Task/{id}
+GET
+  No specifiq access needed
+  /
+  return Hello world
+
+  Require a valid Jwt Token
+  /secret
+
+  Require a valid Jwt Token with the correct scope ( not implemented yet)
+  /secret2
+```
+
+Tasks
+```
+GET
+  Get all task
+  /api/Tasks
+  -H 'Authorization: Bearer {Token}'
+
+  Get a task with specified {id}
+  Can be expanded with 'users' to get user details on specified task
+  /api/Tasks/{id}?expand=["", users]
+  -H 'Authorization: Bearer {Token}'
+
+POST
+  Create a task with specified Users Ids
+  /api/Tasks
+  -H 'Authorization: Bearer {Token}'
+  {
+    "name": "string",
+    "description": "string",
+    "userIDS": [
+      1
+    ]
+  }
+
+PUT
+  Modifie Task with specified {id}
+  /api/Tasks/{id}
+  -H 'Authorization: Bearer {Token}'
+  {
+    "id": {id},
+    "name": "string",
+    "description": "string",
+    "userIDS": [
+      1
+    ]
+  }
+
+DELETE
+  Delete Task with specified {id}
+  /api/Tasks/{id}
+  -H 'Authorization: Bearer {Token}'
+```
+
+Users ( POST adn PUT will extensivly be reworked next push)
+```
+GET
+  Get all Users
+  /api/Users
+  -H 'Authorization: Bearer {Token}'
+
+  Get a User with specified {id}
+  Can be expanded with 'tasks' to get task details on specified user
+  /api/Users/{id}?expand=["", tasks]
+  -H 'Authorization: Bearer {Token}'
+
+POST
+  Create a new User, should not be used since registration happen through Auth controller
+  /api/Users
+  -H 'Authorization: Bearer {Token}'
+
+PUT
+  /api/Users
+  -H 'Authorization: Bearer {Token}'
+
+DELETE
+  Delete user with specified {id}
+  /api/Users/{id}
+  -H 'Authorization: Bearer {Token}'
+
+PATCH
+  Soft delete user with specified {id}
+  /api/Users/{id}/soft-delete
+  -H 'Authorization: Bearer {Token}'
+
+  Restore a soft deleted user with specified {id}
+  /api/Users/{id}/restore
+  -H 'Authorization: Bearer {Token}'
 ```
