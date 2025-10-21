@@ -35,5 +35,13 @@ namespace TaskBoard.Api.Mappers
 
             return dto;
         }
+
+        public static void FromTaskUpdateDto(Tasks existingTask, TaskUpdateDto newValue)
+        {
+            existingTask.UpdatedAt = DateTime.UtcNow;
+            existingTask.Name = newValue.Name;
+            existingTask.Description = newValue.Description;
+            return;
+        }
     }
 }

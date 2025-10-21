@@ -15,6 +15,21 @@ namespace TaskBoard.Api.Dtos
 
     }
 
+    public class TaskCreateDto
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public List<int>? UserIDS { get; set; }
+    }
+
+    public class TaskUpdateDto
+    {
+        public int ID { get; set; }
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public List<int>? UserIDS { get; set; }
+    }
+
     public class TaskSummaryDto
     {
         public int ID { get; set; }

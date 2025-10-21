@@ -24,7 +24,10 @@ namespace TaskBoard.Api.Controllers
         // API Key-protected endpoint
         [HttpGet("apikey")]
         [Authorize(AuthenticationSchemes = "ApiKey")]
-        public IActionResult ApiKeyEndpoint() => Ok("API Key authorized");
+        public IActionResult ApiKeyEndpoint([FromHeader(Name = "X-API-KEY")] string key)
+        {
+            return Ok("API Key authorized");
+        }
 
         // Either JWT or API Key
         [HttpGet("either")]

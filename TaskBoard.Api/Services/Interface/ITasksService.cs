@@ -1,6 +1,6 @@
 ﻿
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using TaskBoard.Api.Dtos;
+using TaskBoard.Api.Models;
 
 namespace TaskBoard.Api.Services.Interface
 {
@@ -8,10 +8,10 @@ namespace TaskBoard.Api.Services.Interface
     {
         Task<IEnumerable<TaskDto>?> GetAllTasks(List<string>? expands = null);
         Task<TaskDto?> GetById(int ID, List<string>? expands = null);
-        Task<TaskDto> Create(Models.Tasks newTask, List<string>? expands = null);
-        Task<TaskDto?> Update(int ID, Models.Tasks UpdatedTask, List<string>? expands = null);
+        Task<TaskDto> Create(TaskCreateDto newTask, List<string>? expands = null);
+        Task<TaskDto?> Update(int ID, TaskUpdateDto UpdatedTask, List<string>? expands = null);
         Task<bool> Delete(int ID);
 
-        Task ValidateUsersAsync(Models.Tasks newTask);
+        Task ValidateUsersAsync(Tasks newTask, List<int>? requestedIds);
     }
 }

@@ -22,7 +22,9 @@ namespace TaskBoard.Api.Services
     {
         private readonly TasksContext _tasksContext;
         private readonly JwtOptions _jwtOptions;
-        public AuthService(TasksContext tasksContext, IOptions<JwtOptions> jwtOptions)
+        private readonly IUserService _userService;
+
+        public AuthService(TasksContext tasksContext, IOptions<JwtOptions> jwtOptions, IUserService userService)
         {
 
             _tasksContext = tasksContext;
@@ -35,6 +37,8 @@ namespace TaskBoard.Api.Services
 
                 _jwtOptions.Key = keyFromEnv;
             }
+            _userService = userService;
+
         }
 
         public async Task<LoginResponseModel?> Authenticate(LoginRequestModel request)
@@ -96,8 +100,9 @@ namespace TaskBoard.Api.Services
                 PasswordHash = PasswordHashingHandler.HashPassword(request.Password),
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
-
+                Tasks = new List<Tasks>()
             };
+            return await _userService.Create(newUser);
 
             _tasksContext.Users.Add(newUser);
             await _tasksContext.SaveChangesAsync();

@@ -41,7 +41,7 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTask(Tasks newTask)
+        public async Task<IActionResult> CreateTask(TaskCreateDto newTask)
         {
             if (!ModelState.IsValid)
             {
@@ -53,7 +53,7 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int id, Tasks updatedTask)
+        public async Task<IActionResult> UpdateTask(int id, TaskUpdateDto updatedTask)
         {
             TaskDto? task = await _taskService.Update(id, updatedTask);
             if (task is null) return NotFound();

@@ -5,7 +5,7 @@ namespace TaskBoard.Api.Services.Helper
 		public static void SyncCollection<T>(ICollection<T> existingItems, List<T>? incomingItems)
 			where T : class
 		{
-			if (incomingItems == null) return; // no change
+			if (incomingItems is null) return; // no change
 			existingItems.Clear();
 			foreach (var item in incomingItems)
 			{

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Exceptions;
@@ -56,11 +57,19 @@ namespace TaskBoard.Api.Services
             return task is null ? null : TaskMapper.ToDto(task, expands);
         }
         
-        public async Task<TaskDto> Create(Tasks newTask, List<string>? expands = null)
+        public async Task<TaskDto> Create(TaskCreateDto requestTask, List<string>? expands = null)
         {
             try
             {
-                await ValidateUsersAsync(newTask);
+                Tasks newTask = new Tasks
+                {
+                    Name = requestTask.Name,
+                    Description = requestTask.Description,
+                    CreatedAt = DateTime.UtcNow,
+                    User = new List<Users>()
+                };
+
+                await ValidateUsersAsync(newTask, requestTask.UserIDS);
 
                 _tasksContext.Tasks.Add(newTask);
                 await _tasksContext.SaveChangesAsync();
@@ -77,21 +86,22 @@ namespace TaskBoard.Api.Services
                 throw;
             }
         }
-        public async Task<TaskDto?> Update(int ID, Tasks task, List<string>? expands = null)
+        public async Task<TaskDto?> Update(int ID, TaskUpdateDto taskUpdate, List<string>? expands = null)
         {
             Tasks? existingTask = await _tasksContext.Tasks
                 .Include(t => t.User)
                 .FirstOrDefaultAsync(t => t.ID == ID);
+
             if (existingTask is null) return null;
-            if (task.ID != existingTask.ID)
+            if (taskUpdate.ID != existingTask.ID)
                 throw new ApiException("Missmatched IDs", 400);
 
-            await ValidateUsersAsync(task);
+            // Handle navigation values and validate usersId
+            await ValidateUsersAsync(existingTask, taskUpdate.UserIDS);
 
             // handle scalar values
-            _tasksContext.Tasks.Entry(existingTask).CurrentValues.SetValues(task);
+            TaskMapper.FromTaskUpdateDto(existingTask, taskUpdate);
 
-            Helper.ColletionHelpers.SyncCollection(existingTask.User, task.User);
 
             await _tasksContext.SaveChangesAsync();
             return existingTask is null ? null: TaskMapper.ToDto(existingTask, expands);
@@ -105,21 +115,21 @@ namespace TaskBoard.Api.Services
             return true;
         }
 
-        public async Task ValidateUsersAsync(Models.Tasks newTask)
+        public async Task ValidateUsersAsync(Tasks newTask, List<int>? requestedIds)
         {
-            if (newTask.User is null || !newTask.User.Any() ) return;
-            var userIds = newTask.User.Select(u => u.ID).ToList();
+            if (requestedIds is null || !requestedIds.Any() ) return;
 
-            var existingUsers = await _tasksContext.Users
-                    .Where(u => userIds.Contains(u.ID))
+
+            List<Users>? existingUsers = await _tasksContext.Users
+                    .Where(u => requestedIds.Contains(u.ID))
                     .ToListAsync();
 
-            if (existingUsers.Count != userIds.Count)
+            if (existingUsers.Count != requestedIds.Count)
             {
                 throw new ArgumentException("Some assigned users do not exist.");
             }
 
-            newTask.User = existingUsers;
+            Helper.ColletionHelpers.SyncCollection(newTask.User, existingUsers);
         }
     }
 }
