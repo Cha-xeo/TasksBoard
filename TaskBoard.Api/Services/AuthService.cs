@@ -47,15 +47,17 @@ namespace TaskBoard.Api.Services
 
             Users?  userAccount = await _tasksContext.Users.FirstOrDefaultAsync(x => x.UserName == request.UserName);
             if (userAccount == null || !PasswordHashingHandler.VerifyPassword(request.Password, userAccount.PasswordHash)) return null;
+            var now = DateTime.UtcNow;
 
-            var tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(_jwtOptions.TokenValidityMins);
+            var tokenExpiryTimeStamp = now.AddMinutes(_jwtOptions.TokenValidityMins);
             try
             {
                 SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(new[]
                     {
-                        new Claim(JwtRegisteredClaimNames.Name, request.UserName)
+                        new Claim(JwtRegisteredClaimNames.Name, request.UserName),
+                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                     }),
                     Expires = tokenExpiryTimeStamp,
                     Issuer = _jwtOptions.Issuer.FirstOrDefault(),
@@ -64,19 +66,23 @@ namespace TaskBoard.Api.Services
                         , SecurityAlgorithms.HmacSha256)
                 };
 
+                Console.WriteLine(_jwtOptions.TokenValidityMins);
+                Console.WriteLine("tokenDescriptor.Expires");
+                Console.WriteLine(tokenDescriptor.Expires);
+
                 JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
                 SecurityToken securityToken = tokenHandler.CreateToken(tokenDescriptor);
                 string accessToken = tokenHandler.WriteToken(securityToken);
 
                 
-                userAccount.LastLoginAt = DateTime.UtcNow;
+                userAccount.LastLoginAt = now;
                 await _tasksContext.SaveChangesAsync();
                 
                 return new LoginResponseModel
                 {
                     User = UserMapper.ToDto(userAccount),
                     AccessToken = accessToken,
-                    ExpiresIn = (int)tokenExpiryTimeStamp.Subtract(DateTime.UtcNow).TotalSeconds
+                    ExpiresIn = (int)(tokenExpiryTimeStamp - now).TotalSeconds
                 };
             }
             catch (Exception e)

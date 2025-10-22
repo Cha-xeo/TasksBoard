@@ -110,6 +110,7 @@ builder.Services.AddAuthentication(options =>
                     Encoding.UTF8.GetBytes(jwtOptions.Key)
             )
         };
+        options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
     })
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
