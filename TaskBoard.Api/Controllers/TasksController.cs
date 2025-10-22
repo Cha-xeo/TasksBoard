@@ -21,9 +21,13 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? expand = "")
         {
-            IEnumerable<TaskDto>? tasks = await _taskService.GetAllTasks();
+            var expands = expand?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList() ?? new List<string>();
+
+            IEnumerable<TaskDto>? tasks = await _taskService.GetAllTasks(expands);
             if (tasks is null) return NotFound();
             return Ok(tasks);
         }

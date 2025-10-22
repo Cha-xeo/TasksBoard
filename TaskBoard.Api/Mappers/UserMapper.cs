@@ -1,4 +1,5 @@
 ﻿using TaskBoard.Api.Dtos;
+using TaskBoard.Api.Handler;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services.Helper;
 
@@ -33,5 +34,20 @@ namespace TaskBoard.Api.Mappers
             }
             return dto;
         }
+        public static void FromUserUpdateDto(Users existingUser, UserUpdateDto newValue)
+        {
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            existingUser.Email = newValue.Email;
+            existingUser.DisplayName = newValue.DisplayName;
+            existingUser.LastName = newValue.LastName;
+            existingUser.UserName = newValue.UserName;
+            if (newValue.PassWord is not null)
+            { 
+                // TODO Change the way password are updated
+                existingUser.PasswordHash = PasswordHashingHandler.HashPassword(newValue.PassWord);
+            }
+            return;
+        }
     }
+
 }

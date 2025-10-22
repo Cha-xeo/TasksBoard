@@ -8,11 +8,12 @@ namespace TaskBoard.Api.Services.Interface
         Task<List<UserDto>?> GetAllUsers(List<string>? expands = null);
         Task<UserDto?> GetById(int ID, List<string>? expands = null);
         Task<UserDto> Create(Users newUser, List<string>? expands = null);
-        Task<UserDto?> Update(int ID, Users user, List<string>? expands = null);
+        //Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null);
+        Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null);
         Task<bool> Delete(int ID);
         Task<bool> SoftDelete(int ID);
         Task<UserDto?> RestoreSoftDeleted(int ID);
 
-        Task ValidateTasksAsync(Users newUser);
+        Task ValidateTasksAsync(Users newUser, List<int>? requestedIds);
     }
 }

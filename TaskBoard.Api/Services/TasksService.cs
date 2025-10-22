@@ -1,14 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Exceptions;
 using TaskBoard.Api.Mappers;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services.Interface;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace TaskBoard.Api.Services
 {
@@ -32,7 +29,24 @@ namespace TaskBoard.Api.Services
         // Return a list of all tasks as TaskDtos or null if not found
         public async Task<IEnumerable<TaskDto>?> GetAllTasks(List<string>? expands = null)
         {
-            List<Tasks>? tasks = await _tasksContext.Tasks.ToListAsync();
+
+            IQueryable<Tasks> query = _tasksContext.Tasks.AsQueryable();
+
+            if (expands is not null)
+            {
+                foreach (string? key in expands)
+                {
+                    if (ExpansionMap.TryGetValue(key, out var expr))
+                    {
+                        query = query.Include(expr);
+                    }
+                }
+            }
+
+
+            List<Tasks> tasks = await query.ToListAsync();
+
+            //List<Tasks>? tasks = await _tasksContext.Tasks.ToListAsync();
             return tasks.Count == 0 ? null : tasks.Select(t => TaskMapper.ToDto(t, expands)).ToList();
         }
 
@@ -104,7 +118,7 @@ namespace TaskBoard.Api.Services
 
 
             await _tasksContext.SaveChangesAsync();
-            return existingTask is null ? null: TaskMapper.ToDto(existingTask, expands);
+            return TaskMapper.ToDto(existingTask, expands);
         }
         public async Task<bool> Delete(int ID)
         {
@@ -117,19 +131,21 @@ namespace TaskBoard.Api.Services
 
         public async Task ValidateUsersAsync(Tasks newTask, List<int>? requestedIds)
         {
-            if (requestedIds is null || !requestedIds.Any() ) return;
+            List<Users>? existingRequestedUsers = null;
 
-
-            List<Users>? existingUsers = await _tasksContext.Users
+            if (requestedIds is not null)
+            {
+                existingRequestedUsers = await _tasksContext.Users
                     .Where(u => requestedIds.Contains(u.ID))
                     .ToListAsync();
 
-            if (existingUsers.Count != requestedIds.Count)
-            {
-                throw new ArgumentException("Some assigned users do not exist.");
+                if (existingRequestedUsers.Count != requestedIds.Count)
+                {
+                    throw new ApiException("Some assigned users do not exist.", 400);
+                }
             }
 
-            Helper.ColletionHelpers.SyncCollection(newTask.User, existingUsers);
+            Helper.ColletionHelpers.SyncCollection(newTask.User, existingRequestedUsers, u => u.ID);
         }
     }
 }

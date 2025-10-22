@@ -93,11 +93,12 @@ Tasks
 ```
 GET
   Get all task
-  /api/Tasks
+  Can be expanded with 'users' to get users details on specified task
+  /api/Tasks?expand=["", users]
   -H 'Authorization: Bearer {Token}'
 
   Get a task with specified {id}
-  Can be expanded with 'users' to get user details on specified task
+  Can be expanded with 'users' to get users details on specified task
   /api/Tasks/{id}?expand=["", users]
   -H 'Authorization: Bearer {Token}'
 
@@ -121,9 +122,7 @@ PUT
     "id": {id},
     "name": "string",
     "description": "string",
-    "userIDS": [
-      1
-    ]
+    "userIDS": [1] // empty to clear, omit to not change, will remove any non present id
   }
 
 DELETE
@@ -132,26 +131,36 @@ DELETE
   -H 'Authorization: Bearer {Token}'
 ```
 
-Users ( POST adn PUT will extensivly be reworked next push)
+Users
 ```
 GET
   Get all Users
-  /api/Users
+  Can be expanded with 'tasks' to get tasks details on specified user
+  /api/Users?expand=["", tasks]
   -H 'Authorization: Bearer {Token}'
 
   Get a User with specified {id}
-  Can be expanded with 'tasks' to get task details on specified user
+  Can be expanded with 'tasks' to get tasks details on specified user
   /api/Users/{id}?expand=["", tasks]
   -H 'Authorization: Bearer {Token}'
 
 POST
-  Create a new User, should not be used since registration happen through Auth controller
+  Deleted since registration happen through Auth controller
   /api/Users
-  -H 'Authorization: Bearer {Token}'
 
 PUT
-  /api/Users
+  /api/Users/{id}
   -H 'Authorization: Bearer {Token}'
+  {
+    "id": {id},
+    "email": "string",
+    "displayName": "string",
+    "firstName": "string",
+    "lastName": "string",
+    "userName": "string",
+    "passWord": "string", // omit password to not change it, will be changed soon
+    "tasksIDS": [1,2] // empty to clear, omit to not change, will remove any non present id
+  }
 
 DELETE
   Delete user with specified {id}

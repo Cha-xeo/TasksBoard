@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Linq.Expressions;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
@@ -28,7 +27,22 @@ namespace TaskBoard.Api.Services
 
         public async Task<List<UserDto>?> GetAllUsers(List<string>? expands = null)
         {
-            List<Users> users = await _tasksContext.Users.ToListAsync();
+
+            IQueryable<Users> query = _tasksContext.Users.AsQueryable();
+
+            if (expands is not null)
+            {
+                foreach (string? key in expands)
+                {
+                    if (ExpansionMap.TryGetValue(key, out var expr))
+                    {
+                        query = query.Include(expr);
+                    }
+                }
+            }
+
+
+            List<Users> users = await query.ToListAsync();
             return users.Count == 0 ? null : users.Select(u => UserMapper.ToDto(u, expands)).ToList();
         }
 
@@ -56,8 +70,6 @@ namespace TaskBoard.Api.Services
         {
             try
             {
-                await ValidateTasksAsync(newUser);
-
                 _tasksContext.Add(newUser);
                 await _tasksContext.SaveChangesAsync();
                 return UserMapper.ToDto(newUser, expands);
@@ -74,25 +86,23 @@ namespace TaskBoard.Api.Services
             }
         }
 
-        public async Task<UserDto?> Update(int ID, Users user, List<string>? expands = null)
+        public async Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null)
         {
-            var existingUser = await _tasksContext.Users
+            Users? existingUser = await _tasksContext.Users
                 .Include(u => u.Tasks)
                 .FirstOrDefaultAsync(u => u.ID == ID);
+
             if (existingUser is null) return null;
-            if (user.ID != existingUser.ID)
+            if (userUpdate.ID != existingUser.ID)
                 throw new ApiException("Mismatched updateUser ID", 400);
 
-            await ValidateTasksAsync(user);
+            // Handle navigation values and validate TasksIds
+            await ValidateTasksAsync(existingUser, userUpdate.TasksIDS);
 
-            // handle scalar values
-            user.UpdatedAt = DateTime.UtcNow;
-            _tasksContext.Users.Entry(existingUser).CurrentValues.SetValues(user);
-            
-            Helper.ColletionHelpers.SyncCollection(existingUser.Tasks, user.Tasks);
+            UserMapper.FromUserUpdateDto(existingUser, userUpdate);
 
             await _tasksContext.SaveChangesAsync();
-            return existingUser is null ? null : UserMapper.ToDto(existingUser, expands);
+            return UserMapper.ToDto(existingUser, expands);
         }
         public async Task<UserDto?> RestoreSoftDeleted(int ID)
         {
@@ -135,22 +145,20 @@ namespace TaskBoard.Api.Services
             return true;
         }
 
-        public async Task ValidateTasksAsync(Users newUser)
+        public async Task ValidateTasksAsync(Users newUser, List<int>? requestedIds)
         {
-            if (newUser.Tasks is null || !newUser.Tasks.Any()) return;
-            var taskIds = newUser.Tasks.Select(t => t.ID).ToList();
-
-            var existingTasks = await _tasksContext.Tasks
-                .Where(t => taskIds.Contains(t.ID))
-                .ToListAsync();
-
-
-            if (existingTasks.Count != taskIds.Count)
+            List<Tasks>? existingRequestedTasks = null;
+            if (requestedIds is not null)
             {
-                throw new ArgumentException("Some assigned tasks do not exist.");
+                existingRequestedTasks = await _tasksContext.Tasks
+                    .Where(t => requestedIds.Contains(t.ID))
+                    .ToListAsync();
+                if (existingRequestedTasks.Count != requestedIds.Count)
+                {
+                    throw new ApiException("Some assigned tasks do not exist.", 400);
+                }
             }
-
-            newUser.Tasks = existingTasks;
+            Helper.ColletionHelpers.SyncCollection(newUser.Tasks, existingRequestedTasks, t => t.ID);
         }
     }
 }

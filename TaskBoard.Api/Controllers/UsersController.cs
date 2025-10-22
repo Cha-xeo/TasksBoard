@@ -19,9 +19,13 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers()
+        public async Task<IActionResult> GetUsers([FromQuery] string? expand = "")
         {
-            var user = await _userService.GetAllUsers();
+            var expands = expand?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList() ?? new List<string>();
+
+            var user = await _userService.GetAllUsers(expands);
             if (user is null) return NotFound();
             return Ok(user);
         }
@@ -38,20 +42,21 @@ namespace TaskBoard.Api.Controllers
             return Ok(user);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create(Users user)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            var created = await _userService.Create(user);
+        // Registration is now done through the Auth controller
+        //[HttpPost]
+        //public async Task<IActionResult> Create(Users user)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+        //    var created = await _userService.Create(user);
 
-            return CreatedAtAction(nameof(GetUserByID), new {id = created.ID}, created);
-        }
+        //    return CreatedAtAction(nameof(GetUserByID), new {id = created.ID}, created);
+        //}
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUserByID(int id, Users user)
+        public async Task<IActionResult> UpdateUserByID(int id, UserUpdateDto user)
         {
             UserDto? updatedUser = await _userService.Update(id, user);
             if (updatedUser is null) return NotFound();
