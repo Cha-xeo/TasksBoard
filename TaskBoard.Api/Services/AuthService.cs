@@ -67,6 +67,11 @@ namespace TaskBoard.Api.Services
                 JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
                 SecurityToken securityToken = tokenHandler.CreateToken(tokenDescriptor);
                 string accessToken = tokenHandler.WriteToken(securityToken);
+
+                
+                userAccount.LastLoginAt = DateTime.UtcNow;
+                await _tasksContext.SaveChangesAsync();
+                
                 return new LoginResponseModel
                 {
                     User = UserMapper.ToDto(userAccount),
@@ -98,6 +103,7 @@ namespace TaskBoard.Api.Services
                 LastName = request.LastName,
                 UserName = request.UserName,
                 PasswordHash = PasswordHashingHandler.HashPassword(request.Password),
+                BirthDate = request.Birthdate,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
                 Tasks = new List<Tasks>()

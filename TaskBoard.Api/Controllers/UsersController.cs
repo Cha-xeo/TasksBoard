@@ -4,7 +4,6 @@ using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services.Interface;
 
-// TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
     [ApiController, Route("api/[controller]"), Authorize]
@@ -19,26 +18,25 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers([FromQuery] string? expand = "")
+        public async Task<ActionResult<IEnumerable<object>>> GetUsers([FromQuery] string? expand = "", [FromQuery] bool summary = false)
         {
             var expands = expand?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList() ?? new List<string>();
 
-            var user = await _userService.GetAllUsers(expands);
-            if (user is null) return NotFound();
+            var user = await _userService.GetAllUsers<object>(expands, summary);
             return Ok(user);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserByID(int id, [FromQuery] string? expand = "")
+        [HttpGet("{id}", Name = "GetUserById")]
+        public async Task<IActionResult> GetUserByID(int id, [FromQuery] string? expand = "", [FromQuery] bool summary = false)
         {
             var expands = expand?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList() ?? new List<string>();
 
-            var user = await _userService.GetById(id, expands);
-            if (user is null) return NotFound();
+            var user = await _userService.GetById(id, expands, summary);
+            if (user is null) return BadRequest();
             return Ok(user);
         }
 
@@ -58,8 +56,12 @@ namespace TaskBoard.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUserByID(int id, UserUpdateDto user)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             UserDto? updatedUser = await _userService.Update(id, user);
-            if (updatedUser is null) return NotFound();
+            if (updatedUser is null) return BadRequest();
             return Ok(updatedUser);
         }
 
@@ -68,7 +70,7 @@ namespace TaskBoard.Api.Controllers
         {
             //bool state = await _userService.Delete(id);
             bool state = await _userService.SoftDelete(id);
-            if (state == false) return NotFound(state);
+            if (state == false) return BadRequest(state);
             return Ok(state);
         }
 
@@ -77,7 +79,7 @@ namespace TaskBoard.Api.Controllers
         {
             //bool state = await _userService.Delete(id);
             bool state = await _userService.SoftDelete(id);
-            if (state == false) return NotFound(state);
+            if (state == false) return BadRequest(state);
             return Ok(state);
         }
 
@@ -85,7 +87,7 @@ namespace TaskBoard.Api.Controllers
         public async Task<IActionResult> RestoreUserByID(int id) 
         {
             UserDto? updatedUser = await _userService.RestoreSoftDeleted(id);
-            if (updatedUser is null) return NotFound();
+            if (updatedUser is null) return BadRequest();
             return Ok(updatedUser);
         }
     }

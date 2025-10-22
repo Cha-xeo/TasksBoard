@@ -33,24 +33,28 @@ Routes
 Auth
 ```
 
-Return a Jwt access token needed to accesss other route
 POST
+  Return a Jwt access token needed to accesss other route
   /api/Auth/login
   {
     "userName": "string",
     "password": "string"
   }
-  
+  Both required
+
   Register a user
   /api/Auth/register
   {
-    "email": "nullable",
+    "email": "string",
     "displayName": "nullable",
     "firstName": "nullable",
     "lastName": "nullable",
     "userName": "string",
     "password": "string"
-  }  
+  }
+  userName: required, must be unique
+  email: must be unique
+  password: required
 ```
 
 Sample
@@ -94,12 +98,14 @@ Tasks
 GET
   Get all task
   Can be expanded with 'users' to get users details on specified task
-  /api/Tasks?expand=["", users]
+  Summary can be set to true (default to false) to get a summary of requested datas
+  /api/Tasks?expand=users&summary=false
   -H 'Authorization: Bearer {Token}'
 
   Get a task with specified {id}
   Can be expanded with 'users' to get users details on specified task
-  /api/Tasks/{id}?expand=["", users]
+  Summary can be set to true (default to false) to get a summary of requested datas
+  /api/Tasks/{id}?expand=users&summary=false
   -H 'Authorization: Bearer {Token}'
 
 POST
@@ -109,10 +115,9 @@ POST
   {
     "name": "string",
     "description": "string",
-    "userIDS": [
-      1
-    ]
+    "userIDS": [1]
   }
+  userIDS: Ids Must exists before creating a task with users, can be left empty.
 
 PUT
   Modifie Task with specified {id}
@@ -122,8 +127,10 @@ PUT
     "id": {id},
     "name": "string",
     "description": "string",
-    "userIDS": [1] // empty to clear, omit to not change, will remove any non present id
+    "userIDS": [1]
   }
+  id: must match the route
+  userIDS: empty to clear, omit to not change, will remove any non present id
 
 DELETE
   Delete Task with specified {id}
@@ -136,12 +143,14 @@ Users
 GET
   Get all Users
   Can be expanded with 'tasks' to get tasks details on specified user
-  /api/Users?expand=["", tasks]
+  Summary can be set to true (default to false) to get a summary of requested datas
+  /api/Users?expand=tasks&summary=false
   -H 'Authorization: Bearer {Token}'
 
   Get a User with specified {id}
   Can be expanded with 'tasks' to get tasks details on specified user
-  /api/Users/{id}?expand=["", tasks]
+  Summary can be set to true (default to false) to get a summary of requested datas
+  /api/Users/{id}?expand=tasks&summary=false
   -H 'Authorization: Bearer {Token}'
 
 POST
@@ -153,14 +162,19 @@ PUT
   -H 'Authorization: Bearer {Token}'
   {
     "id": {id},
-    "email": "string",
+    "email": "string", 
     "displayName": "string",
     "firstName": "string",
     "lastName": "string",
-    "userName": "string",
-    "passWord": "string", // omit password to not change it, will be changed soon
-    "tasksIDS": [1,2] // empty to clear, omit to not change, will remove any non present id
+    "userName": "string", 
+    "passWord": "string",
+    "tasksIDS": [1,2]
   }
+  id: must match the route
+  email:must be unique
+  userName: must be unique
+  passWord: omit password to not change it, will be changed soon
+  tasksIDS: empty to clear, omit to not change, will remove any non present id
 
 DELETE
   Delete user with specified {id}
@@ -176,3 +190,6 @@ PATCH
   /api/Users/{id}/restore
   -H 'Authorization: Bearer {Token}'
 ```
+
+TODO restrict who can interact with what
+TODO Change how password are updated

@@ -21,7 +21,10 @@ namespace TaskBoard.Api.Data
             modelBuilder.Entity<ApiClients>().HasQueryFilter(a => a.DeletedAt == null);
             modelBuilder.Entity<Tasks>().ToTable(nameof(Models.Tasks));
             modelBuilder.Entity<Users>().ToTable(nameof(Models.Users));
+            modelBuilder.Entity<Users>().HasIndex(u => u.UserName).IsUnique();
+            modelBuilder.Entity<Users>().HasIndex(u => u.Email).IsUnique();
             modelBuilder.Entity<ApiClients>().ToTable(nameof(Models.ApiClients));
+
 
         }
     }

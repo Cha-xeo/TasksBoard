@@ -39,7 +39,7 @@ namespace TaskBoard.Api.Controllers
                 return BadRequest("Password is required");
             UserDto? resp = await _authService.Register(request);
             if (resp is null) return BadRequest();
-            return Ok(resp);
+            return CreatedAtRoute("GetUserByID", new { id = resp.ID}, resp);
         }
     }
 }

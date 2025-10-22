@@ -5,8 +5,8 @@ namespace TaskBoard.Api.Services.Interface
 {
     public interface IUserService
     {
-        Task<List<UserDto>?> GetAllUsers(List<string>? expands = null);
-        Task<UserDto?> GetById(int ID, List<string>? expands = null);
+        Task<List<T>> GetAllUsers<T>(List<string>? expands = null, bool summary = false);
+        Task<Object?> GetById(int ID, List<string>? expands = null, bool summary = false);
         Task<UserDto> Create(Users newUser, List<string>? expands = null);
         //Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null);
         Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null);

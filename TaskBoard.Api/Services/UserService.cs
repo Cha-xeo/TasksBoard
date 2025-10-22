@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Azure.Core;
+using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using System.Linq.Expressions;
 using TaskBoard.Api.Data;
 using TaskBoard.Api.Dtos;
@@ -25,7 +27,7 @@ namespace TaskBoard.Api.Services
             _tasksContext = tasksContext;
         }
 
-        public async Task<List<UserDto>?> GetAllUsers(List<string>? expands = null)
+        public async Task<List<T>> GetAllUsers<T>(List<string>? expands = null, bool summary = false)
         {
 
             IQueryable<Users> query = _tasksContext.Users.AsQueryable();
@@ -43,10 +45,14 @@ namespace TaskBoard.Api.Services
 
 
             List<Users> users = await query.ToListAsync();
-            return users.Count == 0 ? null : users.Select(u => UserMapper.ToDto(u, expands)).ToList();
+
+            if (summary)
+                return users.Select(u => (T)(object)UserMapper.ToUserSummaryDto(u)).ToList();
+            else
+                return users.Select(u => (T)(object)UserMapper.ToDto(u, expands)).ToList();
         }
 
-        public async Task<UserDto?> GetById(int ID, List<string>? expands = null)
+        public async Task<Object?> GetById(int ID, List<string>? expands = null, bool summary = false)
         {
             IQueryable<Users> query = _tasksContext.Users.IgnoreQueryFilters().AsQueryable();
 
@@ -62,6 +68,9 @@ namespace TaskBoard.Api.Services
             }
 
             Users? user = await query.FirstOrDefaultAsync(u => u.ID == ID);
+            if (user is null) return null;
+
+            return summary ? UserMapper.ToUserSummaryDto(user) : UserMapper.ToDto(user, expands);
 
             return user is null ? null : UserMapper.ToDto(user, expands);
         }
@@ -70,17 +79,38 @@ namespace TaskBoard.Api.Services
         {
             try
             {
+                bool testExist = await _tasksContext.Users
+                    .AnyAsync(u => u.UserName == newUser.UserName);
+
+                if (testExist)
+                {
+                    throw new ApiException("Username already exists.", 400);
+                }
+
+
+                testExist = await _tasksContext.Users
+                    .AnyAsync(u => u.Email == newUser.Email);
+
+                if (testExist)
+                {
+                    throw new ApiException("Email already exists.", 400);
+                }
+
                 _tasksContext.Add(newUser);
                 await _tasksContext.SaveChangesAsync();
                 return UserMapper.ToDto(newUser, expands);
             }
             catch (DbUpdateException dbEx)
             {
-                Console.WriteLine($"Database error: {dbEx.Message}");
-                throw;
+                if (dbEx.InnerException?.Message.Contains("IX_Users_UserName") == true)
+                    throw new ApiException("Username already exists.", 400);
+                if (dbEx.InnerException?.Message.Contains("IX_Users_Email") == true)
+                    throw new ApiException("Email already exists.", 400);
+                throw; // unknown error
             }
             catch (ArgumentException argEx)
             {
+                throw new ApiException("Validation error", 500);
                 Console.WriteLine($"Validation error: {argEx.Message}");
                 throw;
             }
@@ -88,6 +118,23 @@ namespace TaskBoard.Api.Services
 
         public async Task<UserDto?> Update(int ID, UserUpdateDto userUpdate, List<string>? expands = null)
         {
+            bool testExist = await _tasksContext.Users
+                .AnyAsync(u => u.UserName == userUpdate.UserName && u.ID != userUpdate.ID);
+
+            if (testExist) 
+            {
+                throw new ApiException("Username already exists.", 400);
+            }
+
+            testExist = await _tasksContext.Users
+                .AnyAsync(u => u.Email == userUpdate.Email && u.ID != userUpdate.ID);
+
+            if (testExist) 
+            {
+                throw new ApiException("Email already exists.", 400);
+            }
+
+
             Users? existingUser = await _tasksContext.Users
                 .Include(u => u.Tasks)
                 .FirstOrDefaultAsync(u => u.ID == ID);
@@ -101,7 +148,23 @@ namespace TaskBoard.Api.Services
 
             UserMapper.FromUserUpdateDto(existingUser, userUpdate);
 
-            await _tasksContext.SaveChangesAsync();
+            try
+            {
+                await _tasksContext.SaveChangesAsync();
+            }
+            catch (MySqlException MysqlEx)
+            {
+                throw new ApiException(MysqlEx.Message, 400);
+            }
+            catch (DbUpdateException dbEx)
+            {
+                if (dbEx.InnerException?.Message.Contains("IX_Users_UserName") == true)
+                    throw new ApiException("Username already exists.", 400);
+                if (dbEx.InnerException?.Message.Contains("IX_Users_Email") == true)
+                    throw new ApiException("Email already exists.", 400);
+                throw; // unknown error
+            }
+
             return UserMapper.ToDto(existingUser, expands);
         }
         public async Task<UserDto?> RestoreSoftDeleted(int ID)

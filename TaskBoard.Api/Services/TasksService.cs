@@ -9,7 +9,6 @@ using TaskBoard.Api.Services.Interface;
 
 namespace TaskBoard.Api.Services
 {
-    // TODO fix task requiring full fledged user on update
     public class TasksService : ITasksService
     {
         private readonly TasksContext _tasksContext;
@@ -27,7 +26,7 @@ namespace TaskBoard.Api.Services
         }
 
         // Return a list of all tasks as TaskDtos or null if not found
-        public async Task<IEnumerable<TaskDto>?> GetAllTasks(List<string>? expands = null)
+        public async Task<List<T>> GetAllTasks<T>(List<string>? expands = null, bool summary = false)
         {
 
             IQueryable<Tasks> query = _tasksContext.Tasks.AsQueryable();
@@ -46,12 +45,16 @@ namespace TaskBoard.Api.Services
 
             List<Tasks> tasks = await query.ToListAsync();
 
-            //List<Tasks>? tasks = await _tasksContext.Tasks.ToListAsync();
-            return tasks.Count == 0 ? null : tasks.Select(t => TaskMapper.ToDto(t, expands)).ToList();
+            if (summary)
+                return tasks.Select(t => (T)(object)TaskMapper.ToTaskrSummaryDto(t)).ToList();
+            else
+                return tasks.Select(t => (T)(object)TaskMapper.ToDto(t, expands)).ToList();
+
+            //return tasks.Count == 0 ? null : tasks.Select(t => TaskMapper.ToDto(t, expands)).ToList();
         }
 
         // Return a task as TaskDto corresponding to the ID or null if not found
-        public async Task<TaskDto?> GetById(int ID, List<string>? expands = null)
+        public async Task<Object?> GetById(int ID, List<string>? expands = null, bool summary = false)
         {   
             IQueryable<Tasks> query = _tasksContext.Tasks.AsQueryable();
 
@@ -68,7 +71,11 @@ namespace TaskBoard.Api.Services
 
 
             Tasks? task = await query.FirstOrDefaultAsync(t => t.ID == ID);
-            return task is null ? null : TaskMapper.ToDto(task, expands);
+
+            if (task is null) return null;
+
+            return summary ? TaskMapper.ToTaskrSummaryDto(task) : TaskMapper.ToDto(task, expands);
+            //return task is null ? null : TaskMapper.ToDto(task, expands);
         }
         
         public async Task<TaskDto> Create(TaskCreateDto requestTask, List<string>? expands = null)
@@ -91,11 +98,13 @@ namespace TaskBoard.Api.Services
             }
             catch (DbUpdateException dbEx)
             {
+                throw new ApiException("Database error", 500);
                 Console.WriteLine($"Database error: {dbEx.Message}");
                 throw;
             }
             catch (ArgumentException argEx)
             {
+                throw new ApiException("Validation error", 500);
                 Console.WriteLine($"Validation error: {argEx.Message}");
                 throw;
             }

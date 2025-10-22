@@ -7,7 +7,6 @@ using TaskBoard.Api.Dtos;
 using TaskBoard.Api.Models;
 using TaskBoard.Api.Services.Interface;
 
-// TODO Add expand to other route or adding specialized route for details
 namespace TaskBoard.Api.Controllers
 {
     [Route("api/[controller]"), ApiController, Authorize]
@@ -21,26 +20,25 @@ namespace TaskBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? expand = "")
+        public async Task<ActionResult<IEnumerable<object>>> GetAll([FromQuery] string? expand = "", [FromQuery] bool summary = false)
         {
             var expands = expand?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList() ?? new List<string>();
 
-            IEnumerable<TaskDto>? tasks = await _taskService.GetAllTasks(expands);
-            if (tasks is null) return NotFound();
+            var tasks = await _taskService.GetAllTasks<object>(expands, summary);
             return Ok(tasks);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id, [FromQuery] string? expand = "")
+        public async Task<IActionResult> GetById(int id, [FromQuery] string? expand = "", [FromQuery] bool summary = false)
         {
             var expands = expand?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList() ?? new List<string>();
 
-            TaskDto? task = await _taskService.GetById(id, expands);
-            if (task is null) return NotFound();
+            var task = await _taskService.GetById(id, expands, summary);
+            if (task is null) return BadRequest();
             return Ok(task);
         }
 
@@ -59,8 +57,12 @@ namespace TaskBoard.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTask(int id, TaskUpdateDto updatedTask)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             TaskDto? task = await _taskService.Update(id, updatedTask);
-            if (task is null) return NotFound();
+            if (task is null) return BadRequest();
             return Ok(task);
         }
 
@@ -68,7 +70,7 @@ namespace TaskBoard.Api.Controllers
         public async Task<IActionResult> DeleteTask(int id)
         {
             bool state = await _taskService.Delete(id);
-            if (state == false) NotFound(state);
+            if (state == false) BadRequest(state);
             return Ok(state);
         }
     }

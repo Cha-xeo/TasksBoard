@@ -8,7 +8,6 @@ namespace TaskBoard.Api.Models.Asbstracts
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
 
-        // TODO Probably remove its not really usefull, will see later
         [NotMapped]
         public bool IsDeleted => DeletedAt != null;
     }
