@@ -52,12 +52,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Enforce HTTPS redirection
-builder.Services.AddHttpsRedirection(options =>
-{
-    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
-    options.HttpsPort = 443;
-});
+
 
 // Auth
 builder.Services.AddAuthorization();
@@ -86,6 +81,14 @@ else
     builder.Services.AddDbContext<TasksContext>(options =>
         options.UseMySql(Environment.GetEnvironmentVariable("TaskDatabase") ?? throw new InvalidOperationException("Env veriable  'TaskDatabase' not found."), serverVersion) 
     );
+
+
+    // Enforce HTTPS redirection
+    builder.Services.AddHttpsRedirection(options =>
+    {
+        options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
+        options.HttpsPort = 443;
+    });
 }
 
 builder.Services.AddAuthentication(options =>
@@ -160,6 +163,7 @@ app.UseExceptionHandler(errorApp =>
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
+    app.UseHttpsRedirection();
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
@@ -169,7 +173,6 @@ else
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
